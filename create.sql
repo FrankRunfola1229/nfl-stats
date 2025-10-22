@@ -4,9 +4,9 @@
    Objects: nfl.conference, nfl.division, nfl.team, nfl.player
    ========================================================= */
 
-/* -------------------------
+/* ============================================================
    0) Clean wipe / reset
-   ------------------------- */
+   ============================================================ */
 IF OBJECT_ID('nfl.player', 'U')     IS NOT NULL DROP TABLE nfl.player;
 IF OBJECT_ID('nfl.team', 'U')       IS NOT NULL DROP TABLE nfl.team;
 IF OBJECT_ID('nfl.division', 'U')   IS NOT NULL DROP TABLE nfl.division;
@@ -20,16 +20,16 @@ BEGIN
 END
 GO
 
-/* -------------------------
+/* ============================================================
    1) Create schema
-   ------------------------- */
+   ============================================================ */
 IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'nfl')
     EXEC('CREATE SCHEMA nfl');
 GO
 
-/* -------------------------
+/* ============================================================
    2) DDL — Tables (3NF)
-   ------------------------- */
+   ============================================================ */
 
 -- 2.1 Conference
 CREATE TABLE nfl.conference
@@ -83,9 +83,9 @@ CREATE TABLE nfl.player
 );
 GO
 
-/* -------------------------
+/* ============================================================
    3) DML — Seed (Conferences, Divisions, Teams)
-   ------------------------- */
+   ============================================================ */
 
 -- 3.1 Conferences
 INSERT INTO nfl.conference (name, abbr)
@@ -100,58 +100,63 @@ FROM (VALUES ('AFC','East'),('AFC','North'),('AFC','South'),('AFC','West'),
              ('NFC','East'),('NFC','North'),('NFC','South'),('NFC','West')) d(conf_abbr, name)
 JOIN nfl.conference c ON c.abbr = d.conf_abbr;
 
--- 3.3 Teams (all 32)
-;WITH t(conf_abbr, div_name, abbr, city, nickname) AS (
-    VALUES
-    -- AFC East
-    ('AFC','East','BUF','Buffalo','Bills'),
-    ('AFC','East','MIA','Miami','Dolphins'),
-    ('AFC','East','NE','New England','Patriots'),
-    ('AFC','East','NYJ','New York','Jets'),
-    -- AFC North
-    ('AFC','North','BAL','Baltimore','Ravens'),
-    ('AFC','North','CIN','Cincinnati','Bengals'),
-    ('AFC','North','CLE','Cleveland','Browns'),
-    ('AFC','North','PIT','Pittsburgh','Steelers'),
-    -- AFC South
-    ('AFC','South','HOU','Houston','Texans'),
-    ('AFC','South','IND','Indianapolis','Colts'),
-    ('AFC','South','JAX','Jacksonville','Jaguars'),
-    ('AFC','South','TEN','Tennessee','Titans'),
-    -- AFC West
-    ('AFC','West','DEN','Denver','Broncos'),
-    ('AFC','West','KC','Kansas City','Chiefs'),
-    ('AFC','West','LV','Las Vegas','Raiders'),
-    ('AFC','West','LAC','Los Angeles','Chargers'),
-    -- NFC East
-    ('NFC','East','DAL','Dallas','Cowboys'),
-    ('NFC','East','NYG','New York','Giants'),
-    ('NFC','East','PHI','Philadelphia','Eagles'),
-    ('NFC','East','WAS','Washington','Commanders'),
-    -- NFC North
-    ('NFC','North','CHI','Chicago','Bears'),
-    ('NFC','North','DET','Detroit','Lions'),
-    ('NFC','North','GB','Green Bay','Packers'),
-    ('NFC','North','MIN','Minneapolis','Vikings'),
-    -- NFC South
-    ('NFC','South','TB','Tampa Bay','Buccaneers'),
-    ('NFC','South','ATL','Atlanta','Falcons'),
-    ('NFC','South','CAR','Carolina','Panthers'),
-    ('NFC','South','NO','New Orleans','Saints'),
-    -- NFC West
-    ('NFC','West','ARI','Arizona','Cardinals'),
-    ('NFC','West','LAR','Los Angeles','Rams'),
-    ('NFC','West','SF','San Francisco','49ers'),
-    ('NFC','West','SEA','Seattle','Seahawks')
+-- 3.3 Teams (all 32) — works in SQL Server
+
+
+;WITH myData AS
+(
+   SELECT *
+    FROM (
+        VALUES
+            ('AFC','East','BUF','Buffalo','Bills'),
+            ('AFC','East','MIA','Miami','Dolphins'),
+            ('AFC','East','NE','New England','Patriots'),
+            ('AFC','East','NYJ','New York','Jets'),
+            -- AFC North
+            ('AFC','North','BAL','Baltimore','Ravens'),
+            ('AFC','North','CIN','Cincinnati','Bengals'),
+            ('AFC','North','CLE','Cleveland','Browns'),
+            ('AFC','North','PIT','Pittsburgh','Steelers'),
+            -- AFC South
+            ('AFC','South','HOU','Houston','Texans'),
+            ('AFC','South','IND','Indianapolis','Colts'),
+            ('AFC','South','JAX','Jacksonville','Jaguars'),
+            ('AFC','South','TEN','Tennessee','Titans'),
+            -- AFC West
+            ('AFC','West','DEN','Denver','Broncos'),
+            ('AFC','West','KC','Kansas City','Chiefs'),
+            ('AFC','West','LV','Las Vegas','Raiders'),
+            ('AFC','West','LAC','Los Angeles','Chargers'),
+            -- NFC East
+            ('NFC','East','DAL','Dallas','Cowboys'),
+            ('NFC','East','NYG','New York','Giants'),
+            ('NFC','East','PHI','Philadelphia','Eagles'),
+            ('NFC','East','WAS','Washington','Commanders'),
+            -- NFC North
+            ('NFC','North','CHI','Chicago','Bears'),
+            ('NFC','North','DET','Detroit','Lions'),
+            ('NFC','North','GB','Green Bay','Packers'),
+            ('NFC','North','MIN','Minneapolis','Vikings'),
+            -- NFC South
+            ('NFC','South','TB','Tampa Bay','Buccaneers'),
+            ('NFC','South','ATL','Atlanta','Falcons'),
+            ('NFC','South','CAR','Carolina','Panthers'),
+            ('NFC','South','NO','New Orleans','Saints'),
+            -- NFC West
+            ('NFC','West','ARI','Arizona','Cardinals'),
+            ('NFC','West','LAR','Los Angeles','Rams'),
+            ('NFC','West','SF','San Francisco','49ers'),
+            ('NFC','West','SEA','Seattle','Seahawks')
+        ) AS s(conf_abbr, div_name, abbr, city, nickname) 
 )
+
 INSERT INTO nfl.team (division_id, abbr, city, nickname)
-SELECT d.division_id, t.abbr, t.city, t.nickname
-FROM t
-JOIN nfl.conference c
-  ON c.abbr = t.conf_abbr
-JOIN nfl.division d
-  ON d.conference_id = c.conference_id
- AND d.name = t.div_name;
+SELECT d.division_id, m.abbr, m.city, m.nickname
+FROM myData m 
+JOIN nfl.conference c   ON c.abbr = m.conf_abbr
+JOIN nfl.division   d   ON d.conference_id = c.conference_id AND d.name = m.div_name;
+
+
 
 -- 3.4 Sample players (1 per team so you can test joins)
 -- (Full 2025 roster load is provided later via CSV bulk insert)
@@ -228,9 +233,9 @@ INSERT INTO nfl.player (team_id, first_name, last_name, position, jersey_number)
 SELECT team_id, 'DK','Metcalf','WR',14           FROM nfl.team WHERE abbr='SEA';
 GO
 
-/* -------------------------
+/* ============================================================
    4) DQL — Handy sample queries
-   ------------------------- */
+   ============================================================ */
 
 -- 4.1 Teams by conference/division
 SELECT c.abbr AS conference, d.name AS division, t.abbr AS team_abbr, t.full_name
@@ -321,12 +326,34 @@ CREATE TABLE #player_stage
 -- DROP TABLE #player_stage;
 GO
 
-/* -------------------------
+/* ============================================================
    6) Quick wipe snippet (copy/paste to destroy)
-   ------------------------- */
+   ============================================================ */
 -- DROP TABLE IF EXISTS nfl.player;
 -- DROP TABLE IF EXISTS nfl.team;
 -- DROP TABLE IF EXISTS nfl.division;
 -- DROP TABLE IF EXISTS nfl.conference;
 -- -- optional: drop the schema itself
 -- -- IF EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'nfl') EXEC('DROP SCHEMA nfl');
+
+/*
+
+CREATE TABLE dbo.test
+(
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    name          VARCHAR(50)  NOT NULL UNIQUE
+);
+
+;WITH myData1 AS
+(
+   SELECT *
+    FROM (
+        VALUES
+        ('Frank')
+   ) AS T(name) 
+)
+
+INSERT INTO dbo.test(name)
+SELECT *
+FROM myData1
+*/
