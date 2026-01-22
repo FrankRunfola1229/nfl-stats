@@ -68,3 +68,6 @@ pnpm-lock.yaml
 # (keep pnpm-lock.yaml, ignore others)
 # package-lock.json
 # yarn.lock
+
+# Local env file used by some setups
+variables.env
